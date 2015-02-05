@@ -267,6 +267,7 @@ class MainWindow(QtGui.QMainWindow):
                             item.setText(value)
                             item.setToolTip(value)
                         item.setBackground(brush)
+                        self.alignItem(j, item)
                         self.tableWidget.setItem(i, j, item)
                 i += 1
                 row = cur.fetchone()
@@ -362,15 +363,17 @@ class MainWindow(QtGui.QMainWindow):
         if self.getCurrentHeader(col) in ('HP', u'Ур.', u'Опыт', 'min', 'max'):
             return True
 
-    def alignItem(self, header, item):
+    def alignItem(self, col, item):
         align = {
-            'min': 'QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter',
-            'HP': 'QtCore.Qt.AlignCenter',
-            u'Опыт': 'QtCore.Qt.AlignCenter',
-            u'Ур.': 'QtCore.Qt.AlignCenter',
-            u'С': 'QtCore.Qt.AlignCenter',
+            'min': QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
+            'HP': QtCore.Qt.AlignCenter,
+            u'Опыт': QtCore.Qt.AlignCenter,
+            u'Ур.': QtCore.Qt.AlignCenter,
+            u'С': QtCore.Qt.AlignCenter,
         }
-        item.setTextAlignment(align[header])
+        header = self.getCurrentHeader(col)
+        if header in align:
+            item.setTextAlignment(align[header])
 
     def resizeHeaders(self):
         for i in range(self.tableWidget.columnCount()):
