@@ -208,7 +208,6 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowIcon(QtGui.QIcon('l2wiki.jpg'))
 
         self.refreshTable()
-        self.show()
 
     # slots
     # maybe bad but fastest method to clear table
@@ -456,4 +455,5 @@ if __name__ == '__main__':
     con = sql.connect('l2wiki.db')
 
     wid = MainWindow(con)
+    wid.show()
     sys.exit(app.exec_())
