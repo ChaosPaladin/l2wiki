@@ -6,6 +6,7 @@ from urllib2 import urlopen
 import sqlite3 as sql
 import re
 import md5
+import sys
 
 
 # exclude this pageids from parsing
@@ -261,8 +262,23 @@ def parseWikiPart(con, wiki, cmcontinue=None):
 
 # parse wiki
 def parseWiki(con):
-    useragent = build_user_agent('l2wiki', 0.1, 'mrfido@mail.ru')
+    useragent = build_user_agent('l2wiki', 0.1, 'https://github.com/tm-calculate/l2wiki')
     wiki = MediaWiki('http://l2central.info/c/api.php', user_agent=useragent)
     cmcontinue = parseWikiPart(con, wiki)
     while cmcontinue:
         cmcontinue = parseWikiPart(con, wiki, cmcontinue)
+
+
+if __name__ == '__main__':
+    con = None
+    try:
+        con = sql.connect('l2wiki.db')
+        if not dbCheck(con):
+            dbCreate(con)
+            parseWiki(con)
+    except sql.Error, e:
+        print "Error {0}:".format(e.args[0])
+        sys.exit(1)
+    finally:
+        if con:
+            con.close()
