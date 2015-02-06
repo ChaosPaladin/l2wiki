@@ -20,10 +20,11 @@ class SqlConstructor():
             WHERE level >= {lvlMin} AND level <= {lvlMax}
             """,
             """
-            SELECT isSpoil, dropInfo.title as itemTitle, minCount, maxCount,
-            minChance, maxChance, mobInfo.title as mobTitle, level, location
-            FROM dropInfo INNER JOIN mobInfo
-            ON dropInfo.pageid = mobInfo.pageid
+            SELECT isSpoil, images.image as image, dropInfo.title as itemTitle,
+            minCount, maxCount, minChance, maxChance,
+            mobInfo.title as mobTitle, level, location FROM dropInfo
+            INNER JOIN mobInfo ON dropInfo.pageid = mobInfo.pageid
+            INNER JOIN images ON dropInfo.imageid = images.id
             WHERE level >= {lvlMin} AND level <= {lvlMax}
             """,
             """
@@ -220,7 +221,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.tableWidget)
 
     # execute sql and refresh table widget
-    def refreshTable(self):
+    def refreshTable(self): #NOQA
         # clear table
         self.newTable()
         self.tableWidget.hide()
@@ -256,6 +257,14 @@ class MainWindow(QtGui.QMainWindow):
                         if len(value):
                             imagesWidget = self.getImages(value)
                             self.tableWidget.setCellWidget(i, j, imagesWidget)
+                    elif header == u'И':
+                        img = QtGui.QPixmap()
+                        img.loadFromData(StringIO(value).read())
+                        img = img.scaled(24, 24, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
+                        imgWidget = QtGui.QLabel()
+                        imgWidget.setPixmap(img)
+                        imgWidget.setMaximumWidth(24)
+                        self.tableWidget.setCellWidget(i, j, imgWidget)
                     else:
                         if header == u'С':
                             item.setText([u'Д', u'С'][value])
@@ -347,6 +356,7 @@ class MainWindow(QtGui.QMainWindow):
             'features': [u'Особенности', u'Особенности'],
             'hp': ['HP', u'Уровень здоровья'],
             'exp': [u'Опыт', u'Очки опыта'],
+            'image': [u'И', u'Изображение'],
         }
         self.headerKeys = []
         for j, key in enumerate(keys):
@@ -394,10 +404,12 @@ class MainWindow(QtGui.QMainWindow):
                 self.tableWidget.horizontalHeader().setResizeMode(i, QtGui.QHeaderView.Fixed)
             if header.text() == u'С':
                 self.tableWidget.setColumnWidth(0, 16)
+            if header.text() == u'И':
+                self.tableWidget.setColumnWidth(1, 24)
 
     def resizeRows(self):
         if self.formatSql.isDropInfo:
-            self.tableWidget.verticalHeader().setDefaultSectionSize(self.rowDefaultSize * 0.7)
+            self.tableWidget.verticalHeader().setDefaultSectionSize(24)
         else:
             self.tableWidget.verticalHeader().setDefaultSectionSize(self.rowDefaultSize)
 

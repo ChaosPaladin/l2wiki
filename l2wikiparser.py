@@ -39,9 +39,10 @@ def dbCreate(con):
                       CREATE TABLE mobInfo(pageid INTEGER PRIMARY KEY, title TEXT,
                       location TEXT, level INT, hp INT, exp INT, features);
                       CREATE TABLE dropInfo(id INTEGER PRIMARY KEY AUTOINCREMENT, pageid INT,
-                      title TEXT, isSpoil BOOLEAN, minChance FLOAT,
+                      imageid INT, title TEXT, isSpoil BOOLEAN, minChance FLOAT,
                       maxChance FLOAT, minCount INT, maxCount INT);
                       CREATE TABLE features(id INTEGER PRIMARY KEY, desc TEXT, image BLOB);
+                      CREATE TABLE images(id INTEGER PRIMARY KEY, image BLOB);
                       """)
     con.commit()
 
@@ -58,17 +59,28 @@ def s2i(str):
         return float(str)
 
 
-# generate index for feature
+# generate index for feature based on description string
 def makeIndex(str):
     idx = md5.new()
     idx.update(str.encode('utf-8'))
     return int(idx.hexdigest()[-8:], 16)
 
 
-# check if image already exist
-def isFeatureExists(con, id):
+# check if feature image already exist
+def isFeatureExists(con, idx):
     cur = con.cursor()
-    cur.execute('SELECT COUNT(*) FROM features WHERE id = {0}'.format(id))
+    cur.execute('SELECT COUNT(*) FROM features WHERE id = {0}'.format(idx))
+    r = cur.fetchone()
+    if r[0] > 0:
+        return True
+    else:
+        return False
+
+
+# check if item image already exist
+def isImageExists(con, idx):
+    cur = con.cursor()
+    cur.execute('SELECT COUNT(*) FROM images WHERE id = {0}'.format(idx))
     r = cur.fetchone()
     if r[0] > 0:
         return True
@@ -77,17 +89,33 @@ def isFeatureExists(con, id):
 
 
 # save feature images and description to db
-def saveFeature(con, feature):
+def saveFeature(con, idx, desc, url):
     cur = con.cursor()
-    f = urlopen(feature[2])
-    binary = sql.Binary(f.read())
+    f = urlopen(url)
+    image = sql.Binary(f.read())
     cur.execute(
         """
         INSERT INTO features(id, desc, image)
         VALUES(?,?,?)
-        """, (feature[0],
-              feature[1],
-              binary,
+        """, (idx,
+              desc,
+              image,
+              ))
+    con.commit()
+    f.close()
+
+
+# save image of item to db
+def saveImage(con, idx, url):
+    cur = con.cursor()
+    f = urlopen(url)
+    image = sql.Binary(f.read())
+    cur.execute(
+        """
+        INSERT INTO images(id, image)
+        VALUES(?,?)
+        """, (idx,
+              image,
               ))
     con.commit()
     f.close()
@@ -99,10 +127,10 @@ def parseFeatures(con, r):
     while len(r) > 1:
         url = 'http://l2central.info' + r.pop()
         desc = r.pop()
-        feature = makeIndex(desc)
-        items.append(str(feature))
-        if not isFeatureExists(con, feature):
-            saveFeature(con, (feature, desc, url))
+        idx = makeIndex(desc)
+        items.append(str(idx))
+        if not isFeatureExists(con, idx):
+            saveFeature(con, idx, desc, url)
     return ','.join(items)
 
 
@@ -153,14 +181,15 @@ def parseMob(con, parsedText):
 
 
 # helper function for parseDrop
-def getDropItems(r, pageid, isSpoil=False):
+def getDropItems(con, r, pageid, isSpoil=False):
     # unicode code for em-dash symbol
     emdash = u'\u2014'
     items = []
-    while len(r) > 2:
+    while len(r) > 3:
         chance = r.pop()
         count = r.pop()
         title = r.pop()
+        url = 'http://l2central.info' + r.pop()
         # 'em-dash' split values
         if emdash in chance:
             minChance, maxChance = chance.split(emdash)
@@ -170,7 +199,13 @@ def getDropItems(r, pageid, isSpoil=False):
             minCount, maxCount = count.split(emdash)
         else:
             minCount, maxCount = [count] * 2
+        # make index and save image
+        idx = url.split('/')[-1:]
+        idx = int(s2i(idx.pop()))
+        if not isImageExists(con, idx):
+            saveImage(con, idx, url)
         items.append({
+            'imageid': idx,
             'title': title,
             'pageid': pageid,
             'isSpoil': isSpoil,
@@ -183,9 +218,10 @@ def getDropItems(r, pageid, isSpoil=False):
 
 
 # parse drop and spoil info from given wiki text
-def parseDrop(parsedText, pageid):
+def parseDrop(con, parsedText, pageid):
     # xpath expressions
-    p = '//div/table[{0}]/tr[*]/td[1]/a[2]/text() | \
+    p = '//div/table[{0}]/tr[*]/td[1]/a[1]/img/@src | \
+        //div/table[{0}]/tr[*]/td[1]/a[2]/text() | \
         //div/table[{0}]/tr[*]/td[position()=2 or position()=3]/text()'
     items = []
     for table in (3, 4, 5):
@@ -194,7 +230,7 @@ def parseDrop(parsedText, pageid):
         else:
             isSpoil = False
         r = parsedText.xpath(p.format(table))
-        items.extend(getDropItems(r, pageid, isSpoil))
+        items.extend(getDropItems(con, r, pageid, isSpoil))
     return items
 
 
@@ -237,15 +273,16 @@ def parseWikiPart(con, wiki, cmcontinue=None):
                                   mobInfo['features'],
                                   ))
                 con.commit()
-            dropInfo = parseDrop(parsedText, row['pageid'])
+            dropInfo = parseDrop(con, parsedText, row['pageid'])
             if len(dropInfo):
                 for row in dropInfo:
                     cur.execute("""
                                 INSERT INTO dropInfo
-                                (pageid,title,isSpoil,
+                                (pageid,imageid,title,isSpoil,
                                 minChance,maxChance,minCount,maxCount)
-                                VALUES(?,?,?,?,?,?,?)
+                                VALUES(?,?,?,?,?,?,?,?)
                                 """, (row['pageid'],
+                                      row['imageid'],
                                       row['title'],
                                       row['isSpoil'],
                                       row['minChance'],
