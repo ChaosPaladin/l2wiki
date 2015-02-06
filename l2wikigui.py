@@ -175,12 +175,12 @@ class MainWindow(QtGui.QMainWindow):
 
         # create filter panel
         filtersWidget = self.initFilterPanel()
-        lineEditWidget = QtGui.QLineEdit()
-        lineEditWidget.textChanged[str].connect(self.textFilterChanged)
+        self.lineEditWidget = QtGui.QLineEdit()
+        self.lineEditWidget.textChanged[str].connect(self.textFilterChanged)
         filterLayout = QtGui.QVBoxLayout()
         filterLayout.setSpacing(0)
         filterLayout.addWidget(filtersWidget)
-        filterLayout.addWidget(lineEditWidget)
+        filterLayout.addWidget(self.lineEditWidget)
         filterGroup = QtGui.QWidget()
         filterGroup.setContentsMargins(0, 0, 0, 0)
         filterGroup.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
@@ -307,7 +307,9 @@ class MainWindow(QtGui.QMainWindow):
             self.refreshTable()
 
     def textFilterChanged(self, text):
-        self.formatSql.setFilterText(text)
+        # capitalize first letter of each word
+        self.formatSql.setFilterText(text.title())
+        self.lineEditWidget.setText(text.title())
         if not len(text) or len(text) > 2:
             self.refreshTable()
 
