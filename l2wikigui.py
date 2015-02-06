@@ -269,9 +269,9 @@ class MainWindow(QtGui.QMainWindow):
                         item.setBackground(brush)
                         self.alignItem(j, item)
                         self.tableWidget.setItem(i, j, item)
+                self.statusBar().showMessage(u'Найдено: ' + str(i + 1) + u' записей.')
                 i += 1
                 row = cur.fetchone()
-                self.statusBar().showMessage(u'Найдено: ' + str(i + 1) + u' записей.')
             self.tableWidget.setSortingEnabled(True)
             self.tableWidget.resizeColumnsToContents()
             self.resizeHeaders()
@@ -380,20 +380,21 @@ class MainWindow(QtGui.QMainWindow):
             header = self.tableWidget.horizontalHeaderItem(i)
             if header.text() in (
                 u'Особенности',
-                u'Локация',
                 u'Предмет',
+                u'Локация',
                 u'Имя',
             ):
-                if header.text() == u'Имя' and self.formatSql.isDropInfo is True:
+                if header.text() == u'Имя' and self.formatSql.isDropInfo:
                     self.tableWidget.horizontalHeader().setResizeMode(i, QtGui.QHeaderView.Fixed)
                 else:
                     self.tableWidget.horizontalHeader().setResizeMode(i, QtGui.QHeaderView.Stretch)
             else:
                 self.tableWidget.horizontalHeader().setResizeMode(i, QtGui.QHeaderView.Fixed)
+            if header.text() == u'С':
+                self.tableWidget.setColumnWidth(0, 16)
 
     def resizeRows(self):
         if self.formatSql.isDropInfo:
-            self.tableWidget.setColumnWidth(0, 16)
             self.tableWidget.verticalHeader().setDefaultSectionSize(self.rowDefaultSize * 0.7)
         else:
             self.tableWidget.verticalHeader().setDefaultSectionSize(self.rowDefaultSize)
