@@ -1,0 +1,6 @@
+<RCC>
+	<qresource>
+		<file alias='l2wiki.jpg'>images/l2wiki.jpg</file>
+		<file alias='clear.png'>images/clear.png</file>
+	</qresource>
+</RCC>
