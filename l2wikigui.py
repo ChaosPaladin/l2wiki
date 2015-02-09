@@ -198,9 +198,6 @@ class MainWindow(QtGui.QMainWindow):
         self.mainToolbar.addWidget(filterGroup)
         self.addToolBar(self.mainToolbar)
 
-        # create table widget
-        self.newTable()
-
         # init main window
         self.statusBar()
         self.setMinimumHeight(600)
@@ -208,17 +205,40 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('l2wiki')
         self.setWindowIcon(QtGui.QIcon('l2wiki.jpg'))
 
+        # init table widget
+        self.sortSection = [0, 2]
+        self.sortOrder = [
+            QtCore.Qt.SortOrder.AscendingOrder,
+            QtCore.Qt.SortOrder.AscendingOrder
+        ]
         self.refreshTable()
 
     # slots
     # maybe bad but fastest method to clear table
     def newTable(self):
+        self.saveOrder()
         self.tableWidget = QtGui.QTableWidget()
         self.tableWidget.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.tableWidget.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.tableWidget.verticalHeader().setVisible(False)
+        self.tableWidget.setObjectName(str(int(self.formatSql.isDropInfo)))
         self.rowDefaultSize = self.tableWidget.verticalHeader().defaultSectionSize()
+        self.tableWidget.horizontalHeader().setHighlightSections(False)
         self.setCentralWidget(self.tableWidget)
+
+    # save and restore sort order
+    def saveOrder(self):
+        if hasattr(self, 'tableWidget'):
+            sortSection = self.tableWidget.horizontalHeader().sortIndicatorSection()
+            sortOrder = self.tableWidget.horizontalHeader().sortIndicatorOrder()
+            slot = int(self.tableWidget.objectName())
+            self.sortSection[slot] = sortSection
+            self.sortOrder[slot] = sortOrder
+
+    def restoreOrder(self):
+        sortSection = self.sortSection[self.formatSql.isDropInfo]
+        sortOrder = self.sortOrder[self.formatSql.isDropInfo]
+        self.tableWidget.horizontalHeader().setSortIndicator(sortSection, sortOrder)
 
     # execute sql and refresh table widget
     def refreshTable(self): #NOQA
@@ -236,6 +256,7 @@ class MainWindow(QtGui.QMainWindow):
             i = 0
             self.tableWidget.setColumnCount(len(row.keys()))
             self.translateHeaders(row.keys())
+            self.restoreOrder()
             self.resizeRows()
             while row is not None:
                 if self.rowIsFiltered(row):
