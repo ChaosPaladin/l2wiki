@@ -285,11 +285,6 @@ class MainWindow(QtGui.QMainWindow):
                     row = cur.fetchone()
                     continue
 
-                # temporary fix
-                if not self.formatSql.isDropInfo and not row['exp']:
-                    row = cur.fetchone()
-                    continue
-
                 self.tableWidget.insertRow(i)
                 brush = self.getRowColor(row)
                 # fill row with values
