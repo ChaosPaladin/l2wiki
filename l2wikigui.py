@@ -3,6 +3,7 @@ from PySide import QtCore
 from PySide import QtGui
 from cStringIO import StringIO
 import sqlite3 as sql
+import images_rc #NOQA
 import sys
 
 
@@ -177,11 +178,31 @@ class MainWindow(QtGui.QMainWindow):
         # create filter panel
         filtersWidget = self.initFilterPanel()
         self.lineEditWidget = QtGui.QLineEdit()
+        tooltip = u"""<p>
+        Введите текст для поиска по Имени, Предмету, Локации.
+        Дважды щелкните мышкой по ячейке с нужным текстом, для подстановки.
+        </p>"""
+        self.lineEditWidget.setToolTip(tooltip)
         self.lineEditWidget.textChanged[str].connect(self.textFilterChanged)
+        img = QtGui.QPixmap()
+        img.load(':clear.png')
+        img = img.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
+        clearButton = QtGui.QPushButton()
+        clearButton.setIcon(img)
+        clearButton.setMaximumSize(QtCore.QSize(25, 25))
+        clearButton.setToolTip(u'Очистить текст')
+        clearButton.clicked.connect(self.clearClicked)
+        textLayout = QtGui.QHBoxLayout()
+        textLayout.setSpacing(0)
+        textLayout.setContentsMargins(0, 0, 0, 0)
+        textLayout.addWidget(self.lineEditWidget)
+        textLayout.addWidget(clearButton)
+        textWidget = QtGui.QWidget()
+        textWidget.setLayout(textLayout)
         filterLayout = QtGui.QVBoxLayout()
         filterLayout.setSpacing(0)
         filterLayout.addWidget(filtersWidget)
-        filterLayout.addWidget(self.lineEditWidget)
+        filterLayout.addWidget(textWidget)
         filterGroup = QtGui.QWidget()
         filterGroup.setContentsMargins(0, 0, 0, 0)
         filterGroup.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
@@ -203,7 +224,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setMinimumHeight(600)
         self.setMinimumWidth(1000)
         self.setWindowTitle('l2wiki')
-        self.setWindowIcon(QtGui.QIcon('l2wiki.jpg'))
+        self.setWindowIcon(QtGui.QIcon(':l2wiki.jpg'))
 
         # init table widget
         self.sortSection = [0, 2]
@@ -221,9 +242,10 @@ class MainWindow(QtGui.QMainWindow):
         self.tableWidget.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.tableWidget.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.tableWidget.verticalHeader().setVisible(False)
-        self.tableWidget.setObjectName(str(int(self.formatSql.isDropInfo)))
         self.rowDefaultSize = self.tableWidget.verticalHeader().defaultSectionSize()
         self.tableWidget.horizontalHeader().setHighlightSections(False)
+        self.tableWidget.setObjectName(str(int(self.formatSql.isDropInfo)))
+        self.tableWidget.cellDoubleClicked.connect(self.cellClicked)
         self.setCentralWidget(self.tableWidget)
 
     # save and restore sort order
@@ -338,10 +360,26 @@ class MainWindow(QtGui.QMainWindow):
 
     def textFilterChanged(self, text):
         # capitalize first letter of each word
-        self.formatSql.setFilterText(text.title())
-        self.lineEditWidget.setText(text.title())
+        if self.lineEditWidget.isModified():
+            self.formatSql.setFilterText(text.title())
+            self.lineEditWidget.setText(text.title())
+        else:
+            self.formatSql.setFilterText(text)
         if not len(text) or len(text) > 2:
             self.refreshTable()
+
+    def cellClicked(self, i, j):
+        header = self.getCurrentHeader(j)
+        if header in (
+            u'Предмет',
+            u'Имя',
+            u'Локация',
+        ):
+            text = self.tableWidget.item(i, j).text()
+            self.lineEditWidget.setText(text)
+
+    def clearClicked(self):
+            self.lineEditWidget.setText('')
 
     # other functions
     # filter features (bad design)
