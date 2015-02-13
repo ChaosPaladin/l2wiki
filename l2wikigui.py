@@ -178,10 +178,7 @@ class MainWindow(QtGui.QMainWindow):
         # create filter panel
         filtersWidget = self.initFilterPanel()
         self.lineEditWidget = QtGui.QLineEdit()
-        tooltip = u"""<p>
-        Введите текст для поиска по Имени, Предмету, Локации.
-        Дважды щелкните мышкой по ячейке с нужным текстом, для подстановки.
-        </p>"""
+        tooltip = u'<p>Введите текст для поиска по Имени, Предмету, Локации. Дважды щелкните мышкой по ячейке с нужным текстом, для подстановки.</p>'
         self.lineEditWidget.setToolTip(tooltip)
         self.lineEditWidget.textChanged[str].connect(self.textFilterChanged)
         img = QtGui.QPixmap()
